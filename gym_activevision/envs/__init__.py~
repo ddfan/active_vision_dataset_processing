@@ -1,0 +1,1 @@
+from gym_active_vision.envs.active_vision_env import FooEnv

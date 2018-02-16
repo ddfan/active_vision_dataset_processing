@@ -3,7 +3,7 @@ import sys
 import visualizations.visualizations as vis
 
 
-ROHIT_BASE_PATH = '/playpen/ammirato/Data/RohitData/'
+ROHIT_BASE_PATH = '/home/aeuser/Documents/active_vision_dataset_processing/ActiveVisionDataset/'
 
 
 function_name = sys.argv[1]
