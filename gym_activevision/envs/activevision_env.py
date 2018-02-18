@@ -11,7 +11,7 @@ import random
 import cv2 as cv
 import numpy as np
 
-HOME_DIR=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),'ActiveVisionDataset/')
+HOME_DIR=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),'ActiveVisionDataset_downsampled/')
 
 ACTION_MEANING = {
 	0 : "w",
@@ -63,7 +63,7 @@ INSTANCE_ID_MAP={
 class ActiveVisionEnv(gym.Env):
 	metadata = {'render.modes': ['human']}
 
-	def __init__(self,training_mode_on=True, obs_type='img', episode_length=10):
+	def __init__(self,training_mode_on=True, obs_type='state', episode_length=30):
 		assert obs_type in ('img', 'state')
 		self.scene_list=[]
 		if training_mode_on:
@@ -81,15 +81,9 @@ class ActiveVisionEnv(gym.Env):
 		self.target_boxes=[]
 		self.action_space = spaces.Discrete(7)
 		
-		screen_height=1080
-		screen_width=1920
-		if self._obs_type == 'state':
-			raise
-			self.observation_space = spaces.Box(low=0, high=255, dtype=np.uint8, shape=(128,))
-		elif self._obs_type == 'img':
-			self.observation_space = spaces.Box(low=0, high=255, shape=(screen_height, screen_width, 3), dtype=np.uint8)
-		else:
-			raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
+		screen_height=540
+		screen_width=960
+		self.observation_space = spaces.Box(low=0, high=255, shape=(screen_height, screen_width, 4), dtype=np.uint8)
 
 
 		self._random_init()
@@ -133,11 +127,14 @@ class ActiveVisionEnv(gym.Env):
 			if box[4] is self.target_id:
 				self.target_boxes.append(box)
 		
+		self.state_dict["img_path"]=os.path.join(self.images_path,self.cur_image_name)
+		self.state_dict["boxes"]=self.all_boxes
+
 		#update reward, observations, time, check termination
 		self.t+=1
 		reward=self._get_reward()
 		#print(self.t,action, reward)
-		return self._get_obs(), reward, self._check_termination(), {"target_id":self.target_id}
+		return self._get_obs(), reward, self._check_termination(), self.state_dict
 
 	# return: (states, observations)
 	def reset(self):
@@ -213,6 +210,10 @@ class ActiveVisionEnv(gym.Env):
 		instance_file = open(instance_names_path)
 		instance_names = instance_file.read().splitlines() 
 		self.target_id = INSTANCE_ID_MAP[random.choice(instance_names)]
+
+		self.state_dict={"target_id" : self.target_id,
+						 "scene" : self.scene,
+						 "img_path" : os.path.join(self.images_path,self.cur_image_name)}
 
 	def _check_termination(self):
 		if self.t >= self.episode_length:

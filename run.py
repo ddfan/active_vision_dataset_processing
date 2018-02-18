@@ -3,7 +3,7 @@ import sys
 import visualizations.visualizations as vis
 
 
-ROHIT_BASE_PATH = '/home/aeuser/Documents/active_vision_dataset_processing/ActiveVisionDataset/'
+ROHIT_BASE_PATH = '/home/david/Documents/active_vision_dataset_processing/ActiveVisionDataset_downsampled/'
 
 
 function_name = sys.argv[1]

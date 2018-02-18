@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from scipy import misc
 import scipy.io as sio
-
-
+import cv2 as cv
+import numpy as np
 def vis_boxes_and_move(scene_path):
     """ Visualizes bounding boxes and images in the scene.
 
@@ -41,12 +41,13 @@ def vis_boxes_and_move(scene_path):
     while (move_command != 'q'):
 
         #load the current image and annotations 
-        rgb_image = misc.imread(os.path.join(images_path,cur_image_name))
+        img = cv.imread(os.path.join(images_path,cur_image_name),flags=-1)
+        rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)
         boxes = annotations[cur_image_name]['bounding_boxes']
 
         #plot the image and draw the boxes
         plt.cla()
-        ax.imshow(rgb_image)
+        ax.imshow(rgb_image[:,:,0:3])
         plt.title(cur_image_name)
 
 
@@ -63,7 +64,7 @@ def vis_boxes_and_move(scene_path):
         plt.pause(.001)
 
         #get input from user 
-        move_command = raw_input('Enter command: ')
+        move_command = input('Enter command: ')
 
 
         #get the next image name to display based on the 
@@ -82,7 +83,7 @@ def vis_boxes_and_move(scene_path):
             next_image_name = annotations[cur_image_name]['right']
         elif move_command == 'h':
             next_image_name = cur_image_name
-            print "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n".format(
+            print("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n".format(
                   "Enter a character to move around the scene:",
                   "'w' - forward", 
                   "'a' - rotate counter clockwise", 
@@ -91,7 +92,7 @@ def vis_boxes_and_move(scene_path):
                   "'e' - left", 
                   "'r' - right", 
                   "'q' - quit", 
-                  "'h' - print this help menu")
+                  "'h' - print this help menu"))
 
 
         #if the user inputted move is valid (there is an image there) 
