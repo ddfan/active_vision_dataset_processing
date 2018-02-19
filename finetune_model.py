@@ -24,13 +24,12 @@ predictions = tf.contrib.layers.softmax(logits)
 output = tf.identity(predictions, name='output')
 #output = tf.get_default_graph().get_tensor_by_name("MobilenetV1/Logits/AvgPool_1a/AvgPool:0")
 rest_var = tf.contrib.slim.get_variables_to_restore()
-
+var_dict={}
+for var in rest_var:
+	noscope_name=var.name.replace(':0','')
+	var_dict[noscope_name]=var	
 sess = tf.Session()
-graph = tf.get_default_graph()
-input_graph_def = graph.as_graph_def()
-sess.run(tf.global_variables_initializer())
-
-saver = tf.train.Saver(rest_var)
+saver = tf.train.Saver(var_dict)
 saver.restore(sess, MODEL_NAME+'.ckpt')
 
 #for var in tf.trainable_variables():
