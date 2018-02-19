@@ -20,15 +20,16 @@ arg_scope = mobilenet_v1.mobilenet_v1_arg_scope(weight_decay=weight_decay)
 with tf.contrib.slim.arg_scope(arg_scope):
 	logits, _ = mobilenet_v1.mobilenet_v1(inp,num_classes=num_classes,is_training=is_training,depth_multiplier=factor)
 
-predictions = tf.contrib.layers.softmax(logits)
-output = tf.identity(predictions, name='output')
-#output = tf.get_default_graph().get_tensor_by_name("MobilenetV1/Logits/AvgPool_1a/AvgPool:0")
+#predictions = tf.contrib.layers.softmax(logits)
+#output = tf.identity(predictions, name='output')
+output = tf.get_default_graph().get_tensor_by_name("MobilenetV1/Logits/AvgPool_1a/AvgPool:0")
 rest_var = tf.contrib.slim.get_variables_to_restore()
 var_dict={}
 for var in rest_var:
 	noscope_name=var.name.replace(':0','')
 	var_dict[noscope_name]=var	
 sess = tf.Session()
+#sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver(var_dict)
 saver.restore(sess, MODEL_NAME+'.ckpt')
 
@@ -38,13 +39,16 @@ saver.restore(sess, MODEL_NAME+'.ckpt')
 #[print(n.name) for n in tf.get_default_graph().as_graph_def().node]
 
 #test things out with an image
-img=cv.imread("ActiveVisionDataset_downsampled/Home_001_1/jpg_rgb/000110000010101.png",flags=-1)
-#img=cv.imread("fish.jpg",flags=-1)
-rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)[:,:,0:3]
-img=cv.resize(rgb_image,(img_size,img_size))
+#img=cv.imread("ActiveVisionDataset/Home_001_1/jpg_rgb/000110000010101.jpg",flags=-1)
+img=cv.imread("cat.jpg",flags=-1)
+#print(img)
+#rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)[:,:,0:3]
+#rgb_image=img[0:1080,420:1500,:]
+#print(rgb_image.shape)
+img=cv.resize(img,(img_size,img_size))
 x=200
 y=400
-img=rgb_image[x:x+img_size,y:y+img_size,:]
+#img=rgb_image[x:x+img_size,y:y+img_size,:]
 fig,ax = plt.subplots(2)
 plt.cla()
 ax[0].imshow(img)
@@ -52,10 +56,10 @@ ax[0].imshow(img)
 img=np.expand_dims(img,axis=0)
 
 out = sess.run(output, feed_dict={inp:img})
-
+out=np.squeeze(out)
 print(out, out.shape)
 print(np.min(out),np.max(out))
 
-ax[1].plot(np.arange(0,1001,1),out[0,:])
+ax[1].plot(np.arange(0,out.size,1),out)
 plt.draw()
 plt.show()

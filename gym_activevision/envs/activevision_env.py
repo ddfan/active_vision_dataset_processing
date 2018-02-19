@@ -81,8 +81,8 @@ class ActiveVisionEnv(gym.Env):
 		self.target_boxes=[]
 		self.action_space = spaces.Discrete(7)
 		
-		screen_height=540
-		screen_width=960
+		screen_height=224
+		screen_width=224
 		self.observation_space = spaces.Box(low=0, high=255, shape=(screen_height, screen_width, 4), dtype=np.uint8)
 
 
