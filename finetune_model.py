@@ -29,10 +29,10 @@ for var in rest_var:
 	noscope_name=var.name.replace(':0','')
 	var_dict[noscope_name]=var	
 sess = tf.Session()
-#sess.run(tf.global_variables_initializer())
+sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver(var_dict)
 saver.restore(sess, MODEL_NAME+'.ckpt')
-
+sess.run(tf.global_variables_initializer())
 #for var in tf.trainable_variables():
 #	print(var.name)
 
@@ -42,9 +42,9 @@ saver.restore(sess, MODEL_NAME+'.ckpt')
 #img=cv.imread("ActiveVisionDataset/Home_001_1/jpg_rgb/000110000010101.jpg",flags=-1)
 img=cv.imread("cat.jpg",flags=-1)
 #print(img)
-#rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)[:,:,0:3]
+img = cv.cvtColor(img, cv.COLOR_BGR2RGB)[:,:,0:3]
 #rgb_image=img[0:1080,420:1500,:]
-#print(rgb_image.shape)
+#print(img.shape)
 img=cv.resize(img,(img_size,img_size))
 x=200
 y=400

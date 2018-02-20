@@ -43,27 +43,17 @@ def cnn_to_mlp_mobilenet(hiddens, layer_norm=False):
 
 def _cnn_to_mlp_mobilenet(hiddens, inpt, num_actions, scope, reuse=False, layer_norm=False):
 	with tf.variable_scope(scope, reuse=reuse):
-		target=tf.cast(inpt[:,0,0,0],tf.int32)
-		target_vec=tf.one_hot(target,34,axis=-1)
-
-		inp = inpt[:,0:img_size,0:img_size,0:3] #ignore depth for now
-
 		with tf.variable_scope("convnet"):
+			inp = inpt[:,:,:,0:3] #ignore depth for now
 			this_scope=tf.get_default_graph().get_name_scope()
-			if reuse:
-				tf.get_variable_scope().reuse_variables()
-			print(this_scope,reuse)
 			#load mobilenet
-			#arg_scope = mobilenet_v1.mobilenet_v1_arg_scope(weight_decay=weight_decay)
-			#with tf.contrib.slim.arg_scope(arg_scope):
-			logits, _ = mobilenet_v1.mobilenet_v1(inp,num_classes=num_classes,is_training=is_training,depth_multiplier=factor)
-			#[print(n.name) for n in tf.get_default_graph().as_graph_def().node]
-			myvariable=tf.get_default_graph().get_tensor_by_name(this_scope+"/MobilenetV1/Conv2d_6_pointwise/weights:0")
-			print(myvariable)
+			arg_scope = mobilenet_v1.mobilenet_v1_arg_scope(weight_decay=weight_decay)
+			with tf.contrib.slim.arg_scope(arg_scope):
+				logits, _ = mobilenet_v1.mobilenet_v1(inp,num_classes=num_classes,is_training=is_training,depth_multiplier=factor)
+
 			conv_out = tf.squeeze(tf.get_default_graph().get_tensor_by_name(this_scope+"/MobilenetV1/Logits/AvgPool_1a/AvgPool:0"),[1,2])
 			conv_out=tf.stop_gradient(conv_out)
-			conv_out=tf.Print(conv_out,[tf.reduce_min(conv_out),tf.reduce_max(conv_out)])
-			#print(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=this_scope))
+			#conv_out=tf.Print(conv_out,[tf.reduce_min(conv_out),tf.reduce_max(conv_out)])
 			rest_var = tf.contrib.slim.get_variables_to_restore()
 			var_dict={}
 			for var in rest_var:
@@ -73,11 +63,12 @@ def _cnn_to_mlp_mobilenet(hiddens, inpt, num_actions, scope, reuse=False, layer_
 					var_dict[noscope_name]=var		
 
 			if var_dict:
-				print(var_dict)
 				saver = tf.train.Saver(var_dict)
 				saver.restore(tf.get_default_session(), MODEL_NAME+'.ckpt')
 
 		with tf.variable_scope("action_value"):
+			target=tf.cast(inpt[:,0,0,0],tf.int32)
+			target_vec=tf.one_hot(target,34,axis=-1)
 			action_out = tf.concat([conv_out,target_vec],axis=1)
 			for hidden in hiddens:
 				action_out = layers.fully_connected(action_out, num_outputs=hidden, activation_fn=None)
@@ -111,12 +102,12 @@ def main():
 		exploration_fraction=0.1,
 		exploration_final_eps=0.01,
 		train_freq=5,
-		learning_starts=1000,
+		learning_starts=10000,
 		target_network_update_freq=100,
 		gamma=0.99,
 		prioritized_replay=bool(args.prioritized),
-		print_freq=10,
-		batch_size=32
+		print_freq=100,
+		batch_size=64
 	)
 	print("Saving model to activevision_model.pkl")
 	act.save("activevision_model.pkl")
