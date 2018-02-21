@@ -32,20 +32,22 @@ sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver(var_dict)
 saver.restore(sess, MODEL_NAME+'.ckpt')
-sess.run(tf.global_variables_initializer())
+
 #for var in tf.trainable_variables():
 #	print(var.name)
 
 #[print(n.name) for n in tf.get_default_graph().as_graph_def().node]
 
 #test things out with an image
+img=cv.imread("ActiveVisionDataset_downsampled/Home_001_1/jpg_rgb/000110000010101.png",flags=-1)
 #img=cv.imread("ActiveVisionDataset/Home_001_1/jpg_rgb/000110000010101.jpg",flags=-1)
-img=cv.imread("cat.jpg",flags=-1)
-#print(img)
-img = cv.cvtColor(img, cv.COLOR_BGR2RGB)[:,:,0:3]
-#rgb_image=img[0:1080,420:1500,:]
-#print(img.shape)
-img=cv.resize(img,(img_size,img_size))
+#img=cv.imread("cat.jpg",flags=-1)
+print(img.shape)
+#img = cv.cvtColor(img, cv.COLOR_BGR2RGB)[:,:,0:3]
+img = cv.cvtColor(img, cv.COLOR_BGRA2RGBA)[:,:,0:3]
+#img=img[0:1080,420:1500,:]
+print(img.shape)
+#img=cv.resize(img,(img_size,img_size))
 x=200
 y=400
 #img=rgb_image[x:x+img_size,y:y+img_size,:]

@@ -86,7 +86,7 @@ def main():
 	parser.add_argument('--seed', help='RNG seed', type=int, default=0)
 	parser.add_argument('--prioritized', type=int, default=1)
 	parser.add_argument('--dueling', type=int, default=0)
-	parser.add_argument('--num-timesteps', type=int, default=int(1000000))
+	parser.add_argument('--num-timesteps', type=int, default=int(10e6))
 	args = parser.parse_args()
 	logger.configure()
 	set_global_seeds(args.seed)
@@ -98,16 +98,16 @@ def main():
 		q_func=model,
 		lr=1e-4,
 		max_timesteps=args.num_timesteps,
-		buffer_size=50000,
+		buffer_size=10000,
 		exploration_fraction=0.1,
 		exploration_final_eps=0.01,
-		train_freq=5,
+		train_freq=4,
 		learning_starts=10000,
-		target_network_update_freq=100,
+		target_network_update_freq=1000,
 		gamma=0.99,
 		prioritized_replay=bool(args.prioritized),
 		print_freq=100,
-		batch_size=64
+		batch_size=32
 	)
 	print("Saving model to activevision_model.pkl")
 	act.save("activevision_model.pkl")

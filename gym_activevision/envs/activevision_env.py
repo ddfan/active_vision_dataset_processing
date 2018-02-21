@@ -67,7 +67,8 @@ class ActiveVisionEnv(gym.Env):
 		assert obs_type in ('img', 'state')
 		self.scene_list=[]
 		if training_mode_on:
-			self.scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1", "Home_006_1", "Home_011_1", "Home_015_1", "Home_002_1", "Home_004_2", "Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
+			#self.scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1", "Home_006_1", "Home_011_1", "Home_015_1", "Home_002_1", "Home_004_2", "Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
+			self.scene_list=["Home_001_2"]
 		else:
 			self.scene_list=["Home_001_1","Home_014_1","Home_014_2"]
 
