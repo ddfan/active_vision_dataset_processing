@@ -7,7 +7,7 @@ from baselines.common.atari_wrappers import make_atari
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--env', help='environment ID', default='BreakoutNoFrameskip-v4')
+    parser.add_argument('--env', help='environment ID', default='Boxing-v0')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--prioritized', type=int, default=1)
     parser.add_argument('--dueling', type=int, default=1)
