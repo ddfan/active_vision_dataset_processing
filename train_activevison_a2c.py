@@ -109,7 +109,7 @@ def train(env_id, num_timesteps, seed, policy, lrschedule, num_env):
         policy_fn = MobilenetPolicy
     #env = VecFrameStack(make_atari_env(env_id, num_env, seed), 4)
     env = make_activevision_env(env_id,num_env,seed)
-    learn(policy_fn, env, seed, total_timesteps=int(num_timesteps * 1.1), lrschedule=lrschedule)
+    learn(policy_fn, env, seed, total_timesteps=int(num_timesteps * 1.1), lrschedule=lrschedule, save_interval=1000)
     env.close()
 
 def main():
