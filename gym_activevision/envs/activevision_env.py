@@ -5,12 +5,13 @@ import os
 import json
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from scipy import misc
 import scipy.io as sio
 import cv2 as cv
 import numpy as np
 
-HOME_DIR=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),'ActiveVisionDataset_downsampled/')
+#HOME_DIR=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),'ActiveVisionDataset_downsampled/')
+HOME_DIR = '/media/david/HardDrive/Documents/ActiveVisionDataset_downsampled/'
+RAWIMAGE_DIR = '/media/david/HardDrive/Documents/ActiveVisionDataset/'
 
 ACTION_MEANING = {
     0 : "w",
@@ -66,8 +67,8 @@ class ActiveVisionEnv(gym.Env):
         assert obs_type in ('img', 'state')
         self.scene_list=[]
         if training_mode_on:
-            self.scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1", "Home_006_1", "Home_011_1", "Home_015_1", "Home_002_1", "Home_004_2", "Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
-            #self.scene_list=["Home_001_2"]
+            #self.scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1", "Home_006_1", "Home_011_1", "Home_015_1", "Home_002_1", "Home_004_2", "Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
+            self.scene_list=["Home_001_2"]
         else:
             self.scene_list=["Home_001_1","Home_014_1","Home_014_2"]
 
@@ -150,14 +151,34 @@ class ActiveVisionEnv(gym.Env):
         return self._get_obs()
 
     def render(self, mode='human'):
-        img = self._get_image()
+        #get raw image
+        raw_image_name=self.cur_image_name[:-3]+'jpg'
+        raw_image_path=os.path.join(RAWIMAGE_DIR,self.scene,'jpg_rgb',raw_image_name)
+        img=cv.imread(raw_image_path,flags=-1)
+        img=cv.cvtColor(img, cv.COLOR_BGR2RGB)
+        #get raw annotation boxes
+        raw_annotations_path=os.path.join(HOME_DIR,self.scene,'annotations.json')
+        raw_annotations = json.load(open(raw_annotations_path))
+        raw_boxes=raw_annotations[raw_image_name]['bounding_boxes']
         #draw red bounding boxes for all objects
-        for box in self.all_boxes:
+        for box in raw_boxes:
             cv.rectangle(img,(box[0],box[1]),(box[2],box[3]),(255,0,0),2)
-
         #draw green bounding boxes for target object(s)
-        for box in self.target_boxes:
+        raw_target_boxes=[]
+        for box in raw_boxes:
+            if box[4] is self.target_id:
+                raw_target_boxes.append(box)
+        for box in raw_target_boxes:
             cv.rectangle(img,(box[0],box[1]),(box[2],box[3]),(0,255,0),2)
+
+        # #img = self._get_image()
+        # #draw red bounding boxes for all objects
+        # for box in self.all_boxes:
+        #     cv.rectangle(img,(box[0],box[1]),(box[2],box[3]),(255,0,0),2)
+
+        # #draw green bounding boxes for target object(s)
+        # for box in self.target_boxes:
+        #     cv.rectangle(img,(box[0],box[1]),(box[2],box[3]),(0,255,0),2)
 
         #return or render
         if mode == 'rgb_array':
@@ -176,7 +197,9 @@ class ActiveVisionEnv(gym.Env):
             
     def _get_image(self):
         #load the current image
-        return misc.imread(os.path.join(self.images_path,self.cur_image_name))
+        img=cv.imread(os.path.join(self.images_path,self.cur_image_name),flags=-1)
+        #return cv.cvtColor(img, cv.COLOR_BGRA2RGBA)[:,:,0:3]
+        return cv.cvtColor(img, cv.COLOR_BGR2RGB)
 
     def _get_state(self):
         return self.state_dict

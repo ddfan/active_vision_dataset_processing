@@ -4,7 +4,7 @@ import os
 import gym
 import gym_activevision
 import argparse
-from baselines.a2c.a2c import learn
+from baselines.a2c.a2c import play
 from baselines.a2c.utils import fc
 from baselines import logger
 from baselines.bench import Monitor
@@ -17,7 +17,7 @@ import tensorflow as tf
 import tensorflow.contrib.layers as layers
 import mobilenet_v1
 
-MODEL_NAME = './checkpoints/mobilenet_v1_1.0_224'
+MODEL_NAME = '/tmp/openai-2018-02-23-01-24-56-001364/checkpoint00001'
 
 def make_activevision_env(env_id, num_env, seed, wrapper_kwargs=None, start_index=0):
     """
@@ -51,19 +51,19 @@ class MobilenetPolicy(object):
 
                 conv_out = tf.squeeze(tf.get_default_graph().get_tensor_by_name(this_scope+"/MobilenetV1/Logits/AvgPool_1a/AvgPool:0"),[1,2])
                 conv_out=tf.stop_gradient(conv_out)
-                #conv_out=tf.Print(conv_out,[tf.reduce_min(conv_out),tf.reduce_max(conv_out)])
+                conv_out=tf.Print(conv_out,[tf.reduce_min(conv_out),tf.reduce_max(conv_out)])
 
-                #restore variables for mobilenet
-                rest_var = tf.contrib.slim.get_variables_to_restore()
-                var_dict={}
-                for var in rest_var:
-                    if var.name.startswith(this_scope+'/MobilenetV1'):
-                        noscope_name=var.name.replace(this_scope+'/','')
-                        noscope_name=noscope_name.replace(':0','')
-                        var_dict[noscope_name]=var      
-                if var_dict:
-                    saver = tf.train.Saver(var_dict)
-                    saver.restore(sess, MODEL_NAME+'.ckpt')
+                # #restore variables for mobilenet
+                # rest_var = tf.contrib.slim.get_variables_to_restore()
+                # var_dict={}
+                # for var in rest_var:
+                #     if var.name.startswith(this_scope+'/MobilenetV1'):
+                #         noscope_name=var.name.replace(this_scope+'/','')
+                #         noscope_name=noscope_name.replace(':0','')
+                #         var_dict[noscope_name]=var      
+                # if var_dict:
+                #     saver = tf.train.Saver(var_dict)
+                #     saver.restore(sess, MODEL_NAME+'.ckpt')
 
                 #grab first pixel and reinterpret as target
                 #make onehot vector and append
@@ -100,7 +100,7 @@ class MobilenetPolicy(object):
             self.step = step
             self.value = value
 
-def train(env_id, num_timesteps, seed, policy, lrschedule, num_env):
+def playpolicy(env_id, num_timesteps, seed, policy, num_env,load_path,render):
     if policy == 'cnn':
         policy_fn = CnnPolicy
     elif policy == 'lstm':
@@ -111,20 +111,21 @@ def train(env_id, num_timesteps, seed, policy, lrschedule, num_env):
         policy_fn = MobilenetPolicy
     #env = VecFrameStack(make_atari_env(env_id, num_env, seed), 4)
     env = make_activevision_env(env_id,num_env,seed)
-    learn(policy_fn, env, seed, total_timesteps=int(num_timesteps * 1.1), lrschedule=lrschedule, save_interval=1000)
+    play(policy_fn, env, seed, total_timesteps=num_timesteps, load_path=load_path, render=render)
     env.close()
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--policy', help='Policy architecture', choices=['cnn', 'lstm', 'lnlstm', 'mobilenet'], default='mobilenet')
-    parser.add_argument('--lrschedule', help='Learning rate schedule', choices=['constant', 'linear'], default='constant')
     parser.add_argument('--env', help='environment ID', default='ActiveVision-v0')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--num-timesteps', type=int, default=int(50e6))
+    parser.add_argument('--num-timesteps', type=int, default=int(1e4))
+    parser.add_argument('--load_path', help='path to model directory', default=MODEL_NAME)
+    parser.add_argument('--render', help='Render when playing? (1/0)', type=bool, default=True)
     args = parser.parse_args()
     logger.configure()
-    train(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
-        policy=args.policy, lrschedule=args.lrschedule, num_env=32)
+    playpolicy(args.env, num_timesteps=args.num_timesteps, seed=args.seed,
+        policy=args.policy, num_env=1, render=args.render, load_path=args.load_path)
 
 if __name__ == '__main__':
     main()
