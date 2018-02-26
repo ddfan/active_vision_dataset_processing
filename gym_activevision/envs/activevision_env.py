@@ -9,8 +9,8 @@ import scipy.io as sio
 import cv2 as cv
 import numpy as np
 
-#HOME_DIR=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),'ActiveVisionDataset_downsampled/')
-HOME_DIR = '/media/david/HardDrive/Documents/ActiveVisionDataset_downsampled/'
+HOME_DIR=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),'ActiveVisionDataset_downsampled/')
+#HOME_DIR = '/media/david/HardDrive/Documents/ActiveVisionDataset_downsampled/'
 RAWIMAGE_DIR = '/media/david/HardDrive/Documents/ActiveVisionDataset/'
 
 ACTION_MEANING = {
@@ -67,10 +67,14 @@ class ActiveVisionEnv(gym.Env):
         assert obs_type in ('img', 'state')
         self.scene_list=[]
         if training_mode_on:
-            #self.scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1", "Home_006_1", "Home_011_1", "Home_015_1", "Home_002_1", "Home_004_2", "Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
-            self.scene_list=["Home_001_2"]
+            self.scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1", "Home_006_1", "Home_011_1", "Home_015_1", "Home_002_1", "Home_004_2", "Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
+            #syrup
+            #self.scene_list=["Home_005_2", "Home_010_1", "Home_006_1", "Home_011_1", "Home_002_1", "Home_004_2", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
+            #self.scene_list=["Home_001_2"]
         else:
             self.scene_list=["Home_001_1","Home_014_1","Home_014_2"]
+            #syrup
+            #self.scene_list=["Home_001_1", "Home_001_2", "Home_003_2"]
 
         #load max box areas for normalizing rewards
         max_box_areas_file=open(os.path.join(HOME_DIR,"max_box_areas.json"))
@@ -214,8 +218,6 @@ class ActiveVisionEnv(gym.Env):
         #pick a random scene
         self.scene=self.np_random.choice(self.scene_list)
         scene_path = os.path.join(HOME_DIR,self.scene)
-        self.images_path = os.path.join(scene_path,'jpg_rgb')
-        annotations_path = os.path.join(scene_path,'annotations.json')
 
         #set up scene specfic paths
         self.images_path = os.path.join(scene_path,'jpg_rgb')
@@ -235,8 +237,11 @@ class ActiveVisionEnv(gym.Env):
         #get list of objects in scene
         instance_names_path = os.path.join(scene_path,'present_instance_names.txt')
         instance_file = open(instance_names_path)
-        instance_names = instance_file.read().splitlines() 
-        self.target_id = INSTANCE_ID_MAP[self.np_random.choice(instance_names)]
+        instance_names = instance_file.read().splitlines()
+        # if "aunt_jemima_original_syrup" not in instance_names:
+        #     print(self.scene)
+        # self.target_id = INSTANCE_ID_MAP[self.np_random.choice(instance_names)]
+        self.target_id=2
 
         self.state_dict={"target_id" : self.target_id,
                          "scene" : self.scene,
@@ -254,5 +259,5 @@ class ActiveVisionEnv(gym.Env):
         for box in self.target_boxes:
             box_area=(box[2]-box[0])*(box[3]-box[1])
             this_reward+=float(box_area)/self.max_box_areas[self.scene][str(self.target_id)]
-        return this_reward*10
+        return this_reward
 

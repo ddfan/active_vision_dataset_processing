@@ -4,7 +4,9 @@ import cv2 as cv
 from shutil import copyfile
 import numpy as np
 
+#scene_list=["Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1","Home_001_1","Home_014_1","Home_014_2","Office_001_1"]
 scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1", "Home_006_1", "Home_011_1", "Home_015_1", "Home_002_1", "Home_004_2", "Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1","Home_001_1","Home_014_1","Home_014_2","Office_001_1"]
+
 
 HOME_DIR='/media/david/HardDrive/Documents/ActiveVisionDataset/'
 DOWNSAMPLE_DIR='/media/david/HardDrive/Documents/ActiveVisionDataset_downsampled/'
@@ -42,12 +44,16 @@ for scene in scene_list:
 		depth=cv.imread(os.path.join(depth_path,depth_name))
 		#depth=depth[0:1080,420:1500,:]
 		#print(os.path.join(depth_path,depth_name))
-		depth=cv.resize(depth,new_shape)
+		try:
+			depth=cv.resize(depth,new_shape)
+			cv.imwrite(os.path.join(DOWNSAMPLE_DIR,scene,'high_res_depth',depth_name),depth)
+		except:
+			a=1
 		#new_image=image[:-3]+'png'
 		#combined_image=np.concatenate((img,depth[:,:,0:1]),axis=-1).astype(np.uint8)
 		#cv.imwrite(os.path.join(DOWNSAMPLE_DIR,scene,'jpg_rgb',new_image),combined_image)
 		cv.imwrite(os.path.join(DOWNSAMPLE_DIR,scene,'jpg_rgb',image),img)
-		cv.imwrite(os.path.join(DOWNSAMPLE_DIR,scene,'high_res_depth',depth_name),depth)
+		
 
 		# boxes=annotations[image]['bounding_boxes']
 		# for i in range(len(boxes)):
