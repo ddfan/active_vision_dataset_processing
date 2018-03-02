@@ -5,6 +5,7 @@ import mobilenet_v1
 import cv2 as cv
 import matplotlib.pyplot as plt
 from baselines.a2c.utils import fc
+from baselines.a2c.policies import nature_cnn
 import json
 from progress.bar import Bar
 
@@ -15,21 +16,19 @@ factor=1.0
 num_classes=1001
 is_training=False
 weight_decay = 0.0
-freeze_mobilenet=False
+network_type="fullcnn"
+max_x=1920
+max_y=1080
 tf.reset_default_graph()
 
-inp = tf.placeholder(tf.float32,shape=(None, img_size, img_size, 3),name="input")
-labels=tf.placeholder(tf.float32,shape=(None, 34),name="labels")
-arg_scope = mobilenet_v1.mobilenet_v1_arg_scope(weight_decay=weight_decay)
-with tf.contrib.slim.arg_scope(arg_scope):
-    logits, _ = mobilenet_v1.mobilenet_v1(inp,num_classes=num_classes,is_training=is_training,depth_multiplier=factor)
-
-#predictions = tf.contrib.layers.softmax(logits)
-#output = tf.identity(predictions, name='output')
-features = tf.get_default_graph().get_tensor_by_name("MobilenetV1/Logits/AvgPool_1a/AvgPool:0")
-sess = tf.Session()
-
-if freeze_mobilenet:
+if network_type is "mobilenet_frozen":
+    inp = tf.placeholder(tf.float32,shape=(None, img_size, img_size, 3),name="input")
+    labels_ph=tf.placeholder(tf.float32,shape=(None, 34),name="labels")
+    arg_scope = mobilenet_v1.mobilenet_v1_arg_scope(weight_decay=weight_decay)
+    with tf.contrib.slim.arg_scope(arg_scope):
+        logits, _ = mobilenet_v1.mobilenet_v1(inp,num_classes=num_classes,is_training=is_training,depth_multiplier=factor)
+    features = tf.get_default_graph().get_tensor_by_name("MobilenetV1/Logits/AvgPool_1a/AvgPool:0")
+    sess = tf.Session()
     rest_var = tf.contrib.slim.get_variables_to_restore()
     var_dict={}
     for var in rest_var:
@@ -48,20 +47,60 @@ if freeze_mobilenet:
     with tf.variable_scope('Finetune/fc2'):
         h2 = fc(h1, 'fc', 34)
         detection_logits = tf.identity(h2,name="detection_logits")
-        loss=tf.losses.sigmoid_cross_entropy(labels,detection_logits)
+        loss=tf.losses.sigmoid_cross_entropy(labels_ph,detection_logits)
         optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
         train_op = optimizer.minimize(loss=loss)
     new_variables = set(tf.global_variables()) - set()
     new_variables=[var for var in new_variables if 'Mobilenet' not in var.name]
     saver_finetuned=tf.train.Saver(new_variables)
     sess.run(tf.variables_initializer(new_variables))
+
+elif network_type is "fullcnn":
+    inp = tf.placeholder(tf.float32,shape=(None, img_size, img_size, 3),name="input")
+    depth_ph = tf.placeholder(tf.float32,shape=(None, img_size, img_size, 1),name="depth")
+    labels_ph=tf.placeholder(tf.float32,shape=(None, 34),name="labels")
+    scores_ph=tf.placeholder(tf.float32,shape=(None, 34),name="labels")
+    xpositions_ph=tf.placeholder(tf.float32,shape=(None, 34),name="labels")
+    ypositions_ph=tf.placeholder(tf.float32,shape=(None, 34),name="labels")
+    cnninput=tf.concat([inp,depth_ph],axis=-1)
+    conv_out=nature_cnn(cnninput)
+    # conv_out=tf.nn.dropout(h0,keep_prob=0.8)
+    h1 = fc(conv_out, 'fullcnn/fc1', 34)
+    h1 = tf.nn.sigmoid(h1)
+    detection_logits = tf.identity(h1,name="detection_logits")
+    loss1=tf.losses.mean_squared_error(labels_ph,detection_logits)
+
+    h2 = fc(conv_out, 'fullcnn/fc2', 34)
+    h2 = tf.nn.sigmoid(h2)
+    scores_out = tf.identity(h2,name="scores_out")
+    loss2=tf.losses.mean_squared_error(scores_ph,scores_out)
+
+    h3 = fc(conv_out, 'fullcnn/fc3', 34)
+    h3 = tf.nn.sigmoid(h3)
+    xpos_out = tf.identity(h3,name="xpos_out")
+    loss3=tf.losses.mean_squared_error(xpositions_ph,xpos_out)
+
+    h4 = fc(conv_out, 'fullcnn/fc4', 34)
+    h4 = tf.nn.sigmoid(h4)
+    ypos_out = tf.identity(h4,name="ypos_out")
+    loss4=tf.losses.mean_squared_error(ypositions_ph,ypos_out)
+
+    weights = tf.trainable_variables() 
+    lossL2 = tf.add_n([ tf.nn.l2_loss(v) for v in weights if 'b' not in v.name ]) * 0.004
+    loss = loss1 + loss2 + loss3 + loss4 + lossL2
+
+    optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
+    train_op = optimizer.minimize(loss=loss)
+    sess = tf.Session()
+    saver_finetuned=tf.train.Saver()
+    sess.run(tf.global_variables_initializer())
 else:
     #build detector
     features=tf.squeeze(features,[1,2])
     with tf.variable_scope('Finetune/fc1'):
         h2 = fc(features, 'fc', 34)
         detection_logits = tf.identity(h2,name="detection_logits")
-        loss=tf.losses.sigmoid_cross_entropy(labels,detection_logits)
+        loss=tf.losses.sigmoid_cross_entropy(labels_ph,detection_logits)
         optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
         train_op = optimizer.minimize(loss=loss)
 
@@ -132,19 +171,26 @@ all_data=[]
 for scene in training_scenes:
     scene_path = os.path.join(HOME_DIR,scene)
     images_path = os.path.join(scene_path,'jpg_rgb')
+    depth_path = os.path.join(scene_path,'high_res_depth')
     image_names = os.listdir(images_path)
     annotations = json.load(open(os.path.join(scene_path,'annotations.json')))
     for image in image_names:
+        depth_name=image[:-5]+'3.png'
         boxes=annotations[image]['bounding_boxes']
         label=np.zeros(34)
+        scores=np.zeros(34)
+        xpositions=np.zeros(34)
+        ypositions=np.zeros(34)
         for box in boxes:
             box_area=(box[2]-box[0])*(box[3]-box[1])
             id=box[4]
-            score=float(box_area)/max_box_areas[scene][str(id)]
+            scores[id]=float(box_area)/max_box_areas[scene][str(id)]
+            xpositions[id]=((box[2]-box[0])/2.0+box[0])/max_x
+            ypositions[id]=((box[3]-box[1])/2.0+box[1])/max_y
             #label[id]+=score
             label[id]=1
         #all_labels.append(np.clip(label,None,1.0))
-        all_data.append([os.path.join(images_path,image),label])
+        all_data.append([os.path.join(images_path,image),label,scores,xpositions,ypositions,os.path.join(depth_path,depth_name)])
 
 
 #train
@@ -169,18 +215,39 @@ for epoch in range(training_epochs):
         all_idx=all_idx[batch_size:]
         train_batch=[training[i] for i in batch_idx]
         input_data=np.zeros((batch_size,224,224,3))
+        depth_data=np.zeros((batch_size,224,224,1))
         labels_batch=np.zeros((batch_size,34))
+        scores_batch=np.zeros((batch_size,34))
+        xpos_batch=np.zeros((batch_size,34))
+        ypos_batch=np.zeros((batch_size,34))
         for i,data in enumerate(train_batch):
             input_data[i,...]=cv.imread(data[0])
+            try:
+                depth_data[i,:,:,0]=cv.imread(data[5])[:,:,0]
+            except:
+                depth_data[i,:,:,0]=cv.imread(data[0])[:,:,0]
             labels_batch[i,:]=data[1]
+            scores_batch[i,:]=data[2]
+            xpos_batch[i,:]=data[3]
+            ypos_batch[i,:]=data[4]
 
-        _, loss_value = sess.run([train_op, loss], feed_dict={inp: input_data, labels: labels_batch})
+        if network_type is "fullcnn":
+            _, loss_value = sess.run([train_op, loss], feed_dict={inp: input_data,
+                                                            labels_ph: labels_batch,
+                                                            scores_ph: scores_batch,
+                                                            xpositions_ph: xpos_batch,
+                                                            ypositions_ph: ypos_batch,
+                                                            depth_ph: depth_data})
+        else:
+            _, loss_value = sess.run([train_op, loss], feed_dict={inp: input_data,labels_ph: labels_batch})
         avg_loss += loss_value / total_batch
         bar.next()
 
     if epoch % save_interval == 0:
-        if freeze_mobilenet:
+        if network_type is "mobilenet_frozen":
             saver_finetuned.save(sess, "./checkpoints/finetune" + "%04d" % epoch + ".ckpt")
+        elif network_type is "fullcnn":
+            saver_finetuned.save(sess, "./checkpoints/fullcnn" + "%04d" % epoch + ".ckpt")
         else:
             saver_finetuned.save(sess, "./checkpoints/finetune_all" + "%04d" % epoch + ".ckpt")
 
@@ -193,12 +260,31 @@ for epoch in range(training_epochs):
         all_idx=all_idx[batch_size:]
         test_batch=[test[i] for i in batch_idx]
         input_data=np.zeros((batch_size,224,224,3))
+        depth_data=np.zeros((batch_size,224,224,1))
         labels_batch=np.zeros((batch_size,34))
         for i,data in enumerate(test_batch):
             input_data[i,...]=cv.imread(data[0])
+            try:
+                depth_data[i,:,:,0]=cv.imread(data[5])[:,:,0]
+            except:
+                depth_data[i,:,:,0]=cv.imread(data[0])[:,:,0]
             labels_batch[i,:]=data[1]
+            scores_batch[i,:]=data[2]
+            xpos_batch[i,:]=data[3]
+            ypos_batch[i,:]=data[4]
 
-        loss_value = sess.run(loss, feed_dict={inp: input_data, labels: labels_batch})
+        if network_type is "fullcnn":
+            loss_value = sess.run(loss, feed_dict={inp: input_data,
+                                                labels_ph: labels_batch,
+                                                scores_ph: scores_batch,
+                                                xpositions_ph: xpos_batch,
+                                                ypositions_ph: ypos_batch,
+                                                depth_ph: depth_data})
+
+
+        else:
+            loss_value = sess.run(loss, feed_dict={inp: input_data, labels_ph: labels_batch})
+
         avg_test_loss += loss_value / total_test_batch
 
     print("\tloss=", "{:.9f}".format(avg_loss),"test loss=","{:.9f}".format(avg_test_loss))

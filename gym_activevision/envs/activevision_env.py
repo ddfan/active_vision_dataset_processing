@@ -63,7 +63,7 @@ INSTANCE_ID_MAP={
 class ActiveVisionEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self,training_mode_on=True, obs_type='state', episode_length=30):
+    def __init__(self,training_mode_on=True, obs_type='state', episode_length=100):
         assert obs_type in ('img', 'state')
         self.scene_list=[]
         if training_mode_on:
@@ -125,9 +125,11 @@ class ActiveVisionEnv(gym.Env):
         elif self.move_command == 'n':
             self.next_image_name = self.cur_image_name
 
-        #If the move was not valid, the current image will be displayed again
-        if self.next_image_name != '':
-            self.cur_image_name = self.next_image_name
+        #If the move was not valid, by default rotate right
+        if self.next_image_name == '':
+            self.next_image_name = self.annotations[self.cur_image_name]['rotate_cw']
+
+        self.cur_image_name=self.next_image_name
 
         #update boxes
         self.all_boxes = self.annotations[self.cur_image_name]['bounding_boxes']
@@ -240,8 +242,8 @@ class ActiveVisionEnv(gym.Env):
         instance_names = instance_file.read().splitlines()
         # if "aunt_jemima_original_syrup" not in instance_names:
         #     print(self.scene)
-        # self.target_id = INSTANCE_ID_MAP[self.np_random.choice(instance_names)]
-        self.target_id=2
+        self.target_id = INSTANCE_ID_MAP[self.np_random.choice(instance_names)]
+        #self.target_id=2
 
         self.state_dict={"target_id" : self.target_id,
                          "scene" : self.scene,
@@ -260,4 +262,9 @@ class ActiveVisionEnv(gym.Env):
             box_area=(box[2]-box[0])*(box[3]-box[1])
             this_reward+=float(box_area)/self.max_box_areas[self.scene][str(self.target_id)]
         return this_reward
+
+        # for box in self.all_boxes:
+        #     box_area=(box[2]-box[0])*(box[3]-box[1])
+        #     this_reward+=float(box_area)/self.max_box_areas[self.scene][str(box[4])]
+        # return this_reward
 
