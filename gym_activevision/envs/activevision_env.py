@@ -63,14 +63,14 @@ INSTANCE_ID_MAP={
 class ActiveVisionEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self,training_mode_on=True, obs_type='state', episode_length=100):
+    def __init__(self,training_mode_on=True, obs_type='state', episode_length=50):
         assert obs_type in ('img', 'state')
         self.scene_list=[]
         if training_mode_on:
-            self.scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1", "Home_006_1", "Home_011_1", "Home_015_1", "Home_002_1", "Home_004_2", "Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
+            #self.scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1", "Home_006_1", "Home_011_1", "Home_015_1", "Home_002_1", "Home_004_2", "Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
             #syrup
             #self.scene_list=["Home_005_2", "Home_010_1", "Home_006_1", "Home_011_1", "Home_002_1", "Home_004_2", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
-            #self.scene_list=["Home_001_2"]
+            self.scene_list=["Home_001_2"]
         else:
             self.scene_list=["Home_001_1","Home_014_1","Home_014_2"]
             #syrup
@@ -88,7 +88,7 @@ class ActiveVisionEnv(gym.Env):
         
         screen_height=224
         screen_width=224
-        self.observation_space = spaces.Box(low=0, high=255, shape=(screen_height, screen_width, 3), dtype=np.uint8)
+        self.observation_space = spaces.Box(low=0, high=255, shape=(screen_height, screen_width, 4), dtype=np.uint8)
 
         self.seed()
         self._random_init()
