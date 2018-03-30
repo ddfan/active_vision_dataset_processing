@@ -11,12 +11,42 @@ scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1"
 HOME_DIR='/media/david/HardDrive/Documents/ActiveVisionDataset/'
 DOWNSAMPLE_DIR='/media/david/HardDrive/Documents/ActiveVisionDataset_downsampled/'
 
-max_box_areas={}
-
-resize_factor=0.5
-screen_height=1080
-screen_width=1920
-new_shape=(224,224)
+INSTANCE_ID_MAP={
+    "background" : 0,
+    "advil_liqui_gels" : 1,
+    "aunt_jemima_original_syrup" : 2,
+    "bumblebee_albacore" : 3,
+    "cholula_chipotle_hot_sauce" : 4,
+    "coca_cola_glass_bottle" : 5,
+    "crest_complete_minty_fresh" : 6,
+    "crystal_hot_sauce" : 7,
+    "expo_marker_red" : 8,
+    "hersheys_bar" : 9,
+    "honey_bunches_of_oats_honey_roasted" : 10,
+    "honey_bunches_of_oats_with_almonds" : 11,
+    "hunts_sauce" : 12,
+    "listerine_green" : 13,
+    "mahatma_rice" : 14,
+    "nature_valley_granola_thins_dark_chocolate" : 15,
+    "nutrigrain_harvest_blueberry_bliss" : 16,
+    "pepto_bismol" : 17,
+    "pringles_bbq" : 18,
+    "progresso_new_england_clam_chowder" : 19,
+    "quaker_chewy_low_fat_chocolate_chunk" : 20,
+    "red_bull" : 21,
+    "softsoap_clear" : 22,
+    "softsoap_gold" : 23,
+    "softsoap_white" : 24,
+    "spongebob_squarepants_fruit_snaks" : 25,
+    "tapatio_hot_sauce" : 26,
+    "vo5_tea_therapy_healthful_green_tea_smoothing_shampoo" : 27,
+    "nature_valley_sweet_and_salty_nut_almond" : 28,
+    "nature_valley_sweet_and_salty_nut_cashew" : 29,
+    "nature_valley_sweet_and_salty_nut_peanut" : 30,
+    "nature_valley_sweet_and_salty_nut_roasted_mix_nut" : 31,
+    "paper_plate" : 32,
+    "red_cup" : 33
+}
 
 for scene in scene_list:
 	max_box_areas[scene]={}
@@ -24,6 +54,10 @@ for scene in scene_list:
 	images_path = os.path.join(scene_path,'jpg_rgb')
 	depth_path = os.path.join(scene_path,'high_res_depth')
 	annotations_path = os.path.join(scene_path,'annotations.json')
+
+	instance_names_path = os.path.join(scene_path,'present_instance_names.txt')
+    instance_file = open(instance_names_path)
+    instance_names = instance_file.read().splitlines()
 
 	#load data
 	image_names = [f for f in os.listdir(images_path) if os.path.isfile(os.path.join(images_path,f))]
@@ -33,41 +67,19 @@ for scene in scene_list:
 	ann_file = open(annotations_path)
 	annotations = json.load(ann_file)
 
+	planner=Astar_planner(annotations,)
+
 	for image in image_names:
-		print(scene,image)
-		
-		img=cv.imread(os.path.join(images_path,image))
-		#img=img[0:1080,420:1500,:]
-		img=cv.resize(img,new_shape)
+		expert_moves={}
 
-		depth_name=image[:-5]+'3.png'
-		depth=cv.imread(os.path.join(depth_path,depth_name))
-		#depth=depth[0:1080,420:1500,:]
-		#print(os.path.join(depth_path,depth_name))
-		try:
-			depth=cv.resize(depth,new_shape)
-			cv.imwrite(os.path.join(DOWNSAMPLE_DIR,scene,'high_res_depth',depth_name),depth)
-		except:
-			a=1
-		#new_image=image[:-3]+'png'
-		#combined_image=np.concatenate((img,depth[:,:,0:1]),axis=-1).astype(np.uint8)
-		#cv.imwrite(os.path.join(DOWNSAMPLE_DIR,scene,'jpg_rgb',new_image),combined_image)
-		cv.imwrite(os.path.join(DOWNSAMPLE_DIR,scene,'jpg_rgb',image),img)
-		
+		for target_name in instance_names:
+			target_id=INSTANCE_ID_MAP[target_name]
 
-		# boxes=annotations[image]['bounding_boxes']
-		# for i in range(len(boxes)):
-		# 	for j in range(4):
-		# 		boxes[i][j]=int(round(boxes[i][j]*resize_factor))
-		# annotations[image]['bounding_boxes']=boxes
-		# annotations[image]['forward']=annotations[image]['forward'].replace('jpg','png')
-		# annotations[image]['rotate_ccw']=annotations[image]['rotate_ccw'].replace('jpg','png')
-		# annotations[image]['rotate_cw']=annotations[image]['rotate_cw'].replace('jpg','png')
-		# annotations[image]['left']=annotations[image]['left'].replace('jpg','png')
-		# annotations[image]['right']=annotations[image]['right'].replace('jpg','png')
-		# annotations[image]['backward']=annotations[image]['backward'].replace('jpg','png')
+			#plan a path from the current image to the best target image
+			first_move=get_first_move_in_plan(image,target_id)
+			expert_moves[target_id]=first_move
 
-		# annotations[new_image] = annotations.pop(image)
+		annotations[image]['expert']=expert_moves
 
 	with open(os.path.join(DOWNSAMPLE_DIR,scene,'annotations.json'), 'w') as fp:
 		json.dump(annotations,fp)
