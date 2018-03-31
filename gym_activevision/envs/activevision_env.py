@@ -60,6 +60,9 @@ INSTANCE_ID_MAP={
     "red_cup" : 33
 }
 
+max_x=1920
+max_y=1080
+
 class ActiveVisionEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
@@ -67,10 +70,10 @@ class ActiveVisionEnv(gym.Env):
         assert obs_type in ('img', 'state')
         self.scene_list=[]
         if training_mode_on:
-            #self.scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1", "Home_006_1", "Home_011_1", "Home_015_1", "Home_002_1", "Home_004_2", "Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
+            self.scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1", "Home_006_1", "Home_011_1", "Home_015_1", "Home_002_1", "Home_004_2", "Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
             #syrup
             #self.scene_list=["Home_005_2", "Home_010_1", "Home_006_1", "Home_011_1", "Home_002_1", "Home_004_2", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1"]
-            self.scene_list=["Home_001_2"]
+            #self.scene_list=["Home_001_2"]
         else:
             self.scene_list=["Home_001_1","Home_014_1","Home_014_2"]
             #syrup
@@ -127,19 +130,28 @@ class ActiveVisionEnv(gym.Env):
 
         #If the move was not valid, by default rotate right
         if self.next_image_name == '':
-            self.next_image_name = self.annotations[self.cur_image_name]['rotate_cw']
+            # self.next_image_name = self.annotations[self.cur_image_name]['backward']
+            self.next_image_name = self.cur_image_name
 
         self.cur_image_name=self.next_image_name
 
         #update boxes
         self.all_boxes = self.annotations[self.cur_image_name]['bounding_boxes']
         self.target_boxes=[]
+        self.state_dict["score"]=0
+        self.state_dict["xpos"]=0
+        self.state_dict["ypos"]=0
         for box in self.all_boxes:
             if box[4] is self.target_id:
                 self.target_boxes.append(box)
-        
+                box_area=(box[2]-box[0])*(box[3]-box[1])
+                self.state_dict["score"]=float(box_area)/self.max_box_areas[self.scene][str(box[4])]
+                self.state_dict["xpos"]=((box[2]-box[0])/2.0+box[0])/max_x
+                self.state_dict["ypos"]=((box[3]-box[1])/2.0+box[1])/max_y
+
         self.state_dict["img_path"]=os.path.join(self.images_path,self.cur_image_name)
         self.state_dict["boxes"]=self.all_boxes
+        self.state_dict["target_boxes"]=self.target_boxes
 
         #update reward, observations, time, check termination
         self.t+=1
@@ -177,6 +189,7 @@ class ActiveVisionEnv(gym.Env):
         for box in raw_target_boxes:
             cv.rectangle(img,(box[0],box[1]),(box[2],box[3]),(0,255,0),2)
 
+        cv.putText(img,str(self.t),(50,150),cv.FONT_HERSHEY_SIMPLEX,5.0,(255, 0, 0), 4, cv.LINE_AA)
         # #img = self._get_image()
         # #draw red bounding boxes for all objects
         # for box in self.all_boxes:
@@ -247,10 +260,11 @@ class ActiveVisionEnv(gym.Env):
 
         self.state_dict={"target_id" : self.target_id,
                          "scene" : self.scene,
-                         "img_path" : os.path.join(self.images_path,self.cur_image_name)}
+                         "img_path" : os.path.join(self.images_path,self.cur_image_name),
+                         "score":0,"xpos":0,"ypos":0}
 
     def _check_termination(self):
-        if self.t >= self.episode_length:
+        if self.t >= self.episode_length+np.random.randint(-1,1):
             return True
         else:
             return False

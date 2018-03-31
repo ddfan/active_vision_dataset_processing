@@ -4,7 +4,7 @@ import os
 scene_list=["Home_003_2", "Home_005_2", "Home_010_1", "Home_001_2", "Home_004_1", "Home_006_1", "Home_011_1", "Home_015_1", "Home_002_1", "Home_004_2", "Home_007_1", "Home_013_1", "Home_016_1", "Home_003_1", "Home_005_1", "Home_008_1","Home_001_1","Home_014_1","Home_014_2","Office_001_1"]
 
 #HOME_DIR=os.path.join(os.path.dirname(__file__),'ActiveVisionDataset_downsampled/')
-HOME_DIR = '/media/david/HardDrive/Documents/ActiveVisionDataset_downsampled/'
+HOME_DIR = '/media/david/HardDrive/Documents/ActiveVisionDataset/'
 
 max_box_areas={}
 

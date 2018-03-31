@@ -7,6 +7,8 @@ from scipy import misc
 import scipy.io as sio
 import cv2 as cv
 import numpy as np
+from copy import copy
+
 def vis_boxes_and_move(scene_path):
     """ Visualizes bounding boxes and images in the scene.
 
@@ -108,7 +110,7 @@ def vis_boxes_and_move(scene_path):
 
 
 
-def vis_camera_pos_dirs(scene_path, plot_directions=True, scale_positions=True):
+def vis_camera_pos_dirs(scene_path, plot_directions=True, scale_positions=True, plot_text=True, plot_connections=True):
     """ Visualizes camera positions and directions in the scene.
 
     ARGUMENTS:
@@ -142,10 +144,15 @@ def vis_camera_pos_dirs(scene_path, plot_directions=True, scale_positions=True):
     #make plot
     fig,ax = plt.subplots(1)
 
+    camera_dict={}
+    for camera in image_structs:
+        camera_dict[camera[0][0]]=camera
+
     for camera in image_structs:
         #get 3D camera position in the reconstruction
         #coordinate frame. The scale is arbitrary
-        world_pos = camera[3] 
+        world_pos = copy(camera[3])
+
         if scale_positions:
             world_pos *= scale
 
@@ -161,13 +168,29 @@ def vis_camera_pos_dirs(scene_path, plot_directions=True, scale_positions=True):
         #plot only 2D, as all camera heights are the same
 
         #draw the position
-        plt.plot(world_pos[0], world_pos[2],'ro')    
+        plt.plot(world_pos[0], world_pos[2],'ro')  
+
         #draw the direction if user sets option 
         if plot_directions:
             plt.plot([world_pos[0], direction[0]], 
                              [world_pos[2], direction[2]], 'b-')    
 
+        if plot_text:
+            plt.text(direction[0],direction[2],camera[0][0],fontsize=10)
 
+        if plot_connections:
+            for i in range(6):
+                if camera[10+i][0] != [-1]:
+                    connecting_camera=camera_dict[camera[10+i][0]]                    
+                    world_pos2 = copy(connecting_camera[3])
+                    if scale_positions:
+                        world_pos2 *= scale
+                    plt.plot([world_pos[0], world_pos2[0]], 
+                             [world_pos[2], world_pos2[2]], 'r-')   
+
+
+
+            
     #for camera in image_structs 
     plt.axis('equal')
     plt.show()    

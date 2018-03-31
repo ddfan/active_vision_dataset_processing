@@ -19,13 +19,16 @@ import tensorflow as tf
 import tensorflow.contrib.layers as layers
 import mobilenet_v1
 
-MODEL_NAME = '/home/david/Documents/active_vision_dataset_processing/logs/openai-2018-02-27-01-44-18-124640/checkpoint05500'
+# MODEL_NAME = '/home/david/Documents/active_vision_dataset_processing/logs/openai-2018-03-06-22-08-16-612743/checkpoint52000'
+MODEL_NAME = '/home/david/Documents/active_vision_dataset_processing/logs/openai-2018-03-07-13-39-34-195762/checkpoint359100'
 
-from train_activevision_a2c import make_activevision_env,MobilenetPolicy,LstmMobilenetPolicy
+from train_activevision_a2c import MlpPolicy,make_activevision_env,LstmFullCnnPolicy
 
 def playpolicy(env_id, num_timesteps, seed, policy, num_env,load_path,render):
     if policy == 'cnn':
         policy_fn = CnnPolicy
+    elif policy == 'mlp':
+        policy_fn = MlpPolicy
     elif policy == 'lstm':
         policy_fn = LstmPolicy
     elif policy == 'lnlstm':
@@ -34,6 +37,8 @@ def playpolicy(env_id, num_timesteps, seed, policy, num_env,load_path,render):
         policy_fn = MobilenetPolicy
     elif policy == 'lstmmobilenet':
         policy_fn= LstmMobilenetPolicy
+    elif policy == 'lstmfull':
+        policy_fn = LstmFullCnnPolicy
     #env = VecFrameStack(make_atari_env(env_id, num_env, seed), 4)
     env = make_activevision_env(env_id,num_env,seed)
     play(policy_fn, env, seed, total_timesteps=num_timesteps, load_path=load_path, render=render)
@@ -41,7 +46,7 @@ def playpolicy(env_id, num_timesteps, seed, policy, num_env,load_path,render):
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--policy', help='Policy architecture', choices=['cnn', 'lstm', 'lnlstm', 'mobilenet','lstmmobilenet'], default='lstmmobilenet')
+    parser.add_argument('--policy', help='Policy architecture', choices=['cnn', 'lstm', 'lnlstm', 'mobilenet','lstmmobilenet'], default='lstmfull')
     parser.add_argument('--env', help='environment ID', default='ActiveVision-v0')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num-timesteps', type=int, default=int(1e4))
